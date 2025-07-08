@@ -2,6 +2,7 @@ class Yoshi:
     def __init__(self, color, start_pos):
         self.color = color
         self.position = start_pos
+        self.opponent = None  # Se asignará después
 
     def move(self, new_pos, board):
         """Mueve al Yoshi y pinta la celda si es zona especial"""
@@ -18,7 +19,8 @@ class Yoshi:
             nr, nc = r+dr, c+dc
             if 0 <= nr < board_size and 0 <= nc < board_size:
                 pos = (nr, nc)
-                if pos not in board.painted_cells:
+                if (pos not in board.painted_cells and 
+                    pos != self.opponent.position):  # Evitar posición del oponente
                     moves.append(pos)
         return moves
 

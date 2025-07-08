@@ -14,6 +14,7 @@ class YoshisZonesApp:
         self.yoshi_green = None
         self.yoshi_red = None
         self.buttons = {}
+        self.game_ended = False
         self.create_main_menu()
 
     def create_main_menu(self):
@@ -29,11 +30,15 @@ class YoshisZonesApp:
 
     def start_game(self, depth):
         self.clear_window()
+        self.game_ended = False
         self.minimax = Minimax(depth)
         self.yoshi_green = Yoshi("Verde", self.board.random_start_position())
         self.yoshi_red = Yoshi("Rojo", self.board.random_start_position(exclude=self.yoshi_green.position))
+        # Asignar referencias mutuas
+        self.yoshi_green.opponent = self.yoshi_red
+        self.yoshi_red.opponent = self.yoshi_green
         self.create_board()
-        self.machine_turn()
+        self.root.after(1000, self.machine_turn)
 
     def create_board(self):
         self.board_frame = tk.Frame(self.root)
@@ -65,35 +70,45 @@ class YoshisZonesApp:
         self.update_scores()
 
     def machine_turn(self):
+        if self.game_ended:
+            return
+            
+        self.minimax.visited_states = set()
         _, move = self.minimax.minimax(self.board, self.yoshi_green, self.yoshi_red, 
-                                     self.minimax.depth, True, float('-inf'), float('inf'))
+                                    self.minimax.depth, True, float('-inf'), float('inf'))
         if move:
             self.yoshi_green.move(move, self.board)
             self.update_display()
             if not self.board.all_zones_painted():
-                
-                self.root.after(1000, self.check_game_status)
+                # Verificar si el jugador tiene movimientos
+                if not self.yoshi_red.valid_knight_moves(self.board.size, self.board):
+                    self.show_winner()
+                else:
+                    self.root.after(1000, self.check_game_status)
+            else:
+                self.show_winner()
         else:
-            self.check_game_status()
+            self.show_winner()
 
     def player_turn(self, row, col):
+        if self.game_ended:
+            return
+            
         pos = (row, col)
         if pos in self.yoshi_red.valid_knight_moves(self.board.size, self.board):
             self.yoshi_red.move(pos, self.board)
             self.update_display()
             if not self.board.all_zones_painted():
-                self.root.after(500, self.machine_turn)
+                if not self.yoshi_green.valid_knight_moves(self.board.size, self.board):
+                    self.show_winner()
+                else:
+                    self.root.after(500, self.machine_turn)
             else:
                 self.show_winner()
 
     def check_game_status(self):
         if self.board.all_zones_painted():
             self.show_winner()
-        else:
-            
-            if not self.yoshi_red.valid_knight_moves(self.board.size, self.board):
-                messagebox.showinfo("Juego Terminado", "¡No hay movimientos posibles!")
-                self.create_main_menu()
 
     def update_scores(self):
         if hasattr(self, 'score_frame'):
@@ -105,6 +120,10 @@ class YoshisZonesApp:
                 font=("Arial", 20)).pack()
 
     def show_winner(self):
+        if self.game_ended:
+            return
+            
+        self.game_ended = True
         green = self.board.get_score("Verde")
         red = self.board.get_score("Rojo")
         if green > red:
@@ -119,17 +138,18 @@ class YoshisZonesApp:
     def restart_game(self):
         """Reinicia el juego con la misma dificultad"""
         if hasattr(self, 'minimax'):
-          
             depth = self.minimax.depth
             self.clear_window()
             self.board = Board() 
             self.yoshi_green = Yoshi("Verde", self.board.random_start_position())
             self.yoshi_red = Yoshi("Rojo", self.board.random_start_position(exclude=self.yoshi_green.position))
+            self.yoshi_green.opponent = self.yoshi_red
+            self.yoshi_red.opponent = self.yoshi_green
             self.minimax = Minimax(depth)
+            self.game_ended = False
             self.create_board()
             self.machine_turn()
         else:
-        
             self.create_main_menu()
 
     def clear_window(self):

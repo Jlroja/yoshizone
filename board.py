@@ -48,8 +48,10 @@ class Board:
         for zone, cells in self.original_zones.items():
             green = sum(1 for cell in cells if cell in self.painted_colors and self.painted_colors[cell] == "Verde")
             red = sum(1 for cell in cells if cell in self.painted_colors and self.painted_colors[cell] == "Rojo")
-            if color == "Verde" and green > red:
-                score += 1
-            elif color == "Rojo" and red > green:
-                score += 1
+            total_painted = green + red
+            if total_painted >= 3:  # Solo considerar zonas con al menos 3 celdas pintadas
+                if color == "Verde" and green > red:
+                    score += 1
+                elif color == "Rojo" and red > green:
+                    score += 1
         return score
